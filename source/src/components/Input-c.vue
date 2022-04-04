@@ -1,22 +1,31 @@
 <template>
   <div class="mb-3">
     <label :for="id" class="form-label">{{ label }}</label>
-    <input :id="id" class="form-control" type="text" @input="onChange"/>
-    <span>{{ help }}</span>
+    <input 
+      :id="id" 
+      class="form-control"
+      :class="{'is-invalid': help}" 
+      :value="modelValue" 
+      @input="$emit('update:modelValue', $event.target.value)"
+      :type="type" 
+    />
+    <span v-if="help" class="invalid-feedback">{{ help }}</span>
   </div>
 </template>
  
 <script>
  
 export default {
-  emits: ["custom-input"],
+  emits: ["update:modelValue"],
   components: {
  
   },
   props: {
     label: String,
     id: String,
-    help: String
+    help: String,
+    modelValue: String,
+    type: String,
   },
   data:() => {
     return {
@@ -24,12 +33,10 @@ export default {
     }
   },
   computed: {
- 
+    
   },
   methods: {
-    onChange(event) {
-      this.$emit("custom-input", event.target.value);
-    }
+    
   }
  
 }

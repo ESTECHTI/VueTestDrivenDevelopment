@@ -2,37 +2,40 @@
   <div class="col-lg-6 offset-lg-3 col-md-8 offset-md-2">
     <form class="card mt-5" data-testid="form-sign-up" v-if="!signUpSuccess">
       <div class="card-header">
-        <h1 class="text-center">Sign Up</h1>
+        <h1 class="text-center">{{$t('signUp')}}</h1>
       </div>
       <div class="card-body">
         <Input 
           id="username" 
-          label="Username" 
+          :label="$t('username')" 
           :help="errors.username" 
-          @customInput="onChangeUsername"
+          v-model="username"
         />
-        <!-- <div class="mb-3">
-          <label for="username" class="form-label">Username</label>
-          <input id="username" class="form-control" type="text" placeholder="username" v-model="username"/>
-          <span>{{errors.username}}</span>
-        </div> -->
-
-        <div class="mb-3">
-          <label class="form-label" for="email">E-mail</label>
-          <input class="form-control" id="email" type="email" placeholder="e-mail" v-model="email"/>
-        </div>
-        <div class="mb-3">
-          <label class="form-label" for="password">Password</label>
-          <input class="form-control" id="password" type="password" placeholder="password" v-model="password"/>
-        </div>
-        <div class="mb-3">
-          <label class="form-label" for="password-repeat">Password Repeat</label>
-          <input class="form-control" id="password-repeat" type="password" placeholder="password" v-model="passwordRepeat"/>
-        </div>
+        <Input 
+          id="e-mail"
+         :label="$t('email')" 
+          :help="errors.email"
+          v-model="email"
+        />
+        <Input 
+          id="password"
+          :label="$t('password')" 
+          :help="errors.password"
+          v-model="password"
+          type="password"
+        />
+        
+        <Input 
+          id="password-repeat"
+          :label="$t('passwordRepeat')" 
+          type="password"
+          v-model="passwordRepeat"
+          :help="hasPasswordMismatch ? 'Password mismatch' : ''"
+        />
         <div class="text-center">
           <button class="btn btn-primary" :disabled="isDisabled || apiProgress" @click.prevent="submit">
             <span v-if="apiProgress" class="spinner-border spinner-border-sm" role="status"></span>
-            Sign Up
+            {{$t('signUp')}}
           </button>
         </div>
       </div>
@@ -63,12 +66,16 @@ export default {
       passwordRepeat: '',
       apiProgress: false,
       signUpSuccess: false,
-      errors: {}
+      errors: {},
+
     }
   },
   computed: {
     isDisabled() {
       return (this.password && this.passwordRepeat)? this.password != this.passwordRepeat : true
+    },
+    hasPasswordMismatch() {
+      return this.password != this.passwordRepeat;
     }
   },
   methods: {
@@ -87,11 +94,19 @@ export default {
         }
         this.apiProgress = false;
       })
-    },
-    onChangeUsername(value) {
-      this.username = value;
     }
   },
+  watch: {
+    username() {
+      delete this.errors.username
+    },
+    email() {
+      delete this.errors.email
+    },
+    password() {
+      delete this.errors.password
+    },
+  }
 }
 </script>
  

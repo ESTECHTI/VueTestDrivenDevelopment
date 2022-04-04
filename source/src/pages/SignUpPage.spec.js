@@ -6,51 +6,62 @@ import userEvent from "@testing-library/user-event";
 //import axios from "axios";
 import { setupServer } from "msw/node";
 import { rest } from "msw";
+import i18n from "../locales/i18n";
+import en from "../locales/en.json"
 
 describe("Sign Up Page", () => {
   describe("Layout", () => {
-    it("has Sign Up Header", () => {
-      render(SignUpPage);
+
+    const setup = () => {
+      render(SignUpPage, {
+        global: {
+          plugins: [i18n]
+        }
+      });
+    }
+
+    fit("has Sign Up Header", () => {
+      setup();
       const header = screen.queryByRole("heading", { name: "Sign Up" });
       expect(header).toBeInTheDocument();
     });
     it("has username input", () => {
-      render(SignUpPage);
+      setup();
       const input = screen.queryByLabelText('Username');
       expect(input).toBeInTheDocument()
     });
     it("has email input", () => {
-      render(SignUpPage);
+      setup();
       const input = screen.queryByLabelText('E-mail');
       expect(input).toBeInTheDocument()
     });
     it("has password input", () => {
-      render(SignUpPage);
+      setup();
       const input = screen.queryByLabelText('Password');
       expect(input).toBeInTheDocument()
     });
     it("has password type for password input", () => {
-      render(SignUpPage);
+      setup();
       const input = screen.queryByLabelText('Password');
       expect(input.type).toBe("password")
     });
     it("has password password repeat input", () => {
-      render(SignUpPage);
+      setup();
       const input = screen.queryByLabelText('Password Repeat');
       expect(input).toBeInTheDocument()
     });
     it("has password type for password repeat input", () => {
-      render(SignUpPage);
+      setup();
       const input = screen.queryByLabelText('Password Repeat');
       expect(input.type).toBe("password")
     });
     it("has Sign Up button", () => {
-      render(SignUpPage);
+      setup();
       const button = screen.queryByRole("button", { name: "Sign Up" });
       expect(button).toBeInTheDocument();
     });
     it("has Sign Up button disabled", () => {
-      render(SignUpPage);
+      setup();
       const button = screen.queryByRole("button", { name: "Sign Up" });
       expect(button).toBeDisabled();
     });
@@ -75,18 +86,33 @@ describe("Sign Up Page", () => {
 
     afterAll(() => server.close());
 
-    let button;
+    let button, passwordInput, passwordRepeatInput, usernameInput;
     const setup = async () => {
-      render(SignUpPage);
-      const usernameInput = screen.queryByLabelText("Username");
+      render(SignUpPage, {
+        global: {
+          plugins: [i18n]
+        }
+      })
+      usernameInput = screen.queryByLabelText("Username");
       const emailInput = screen.queryByLabelText("E-mail");
-      const passwordInput = screen.queryByLabelText("Password");
-      const passwordRepeatInput = screen.queryByLabelText("Password Repeat");
+      passwordInput = screen.queryByLabelText("Password");
+      passwordRepeatInput = screen.queryByLabelText("Password Repeat");
       button = screen.queryByRole("button", { name: "Sign Up" });
       await userEvent.type(usernameInput, "user1");
       await userEvent.type(emailInput, "user1@mail.com");
       await userEvent.type(passwordInput, "P4ssword");
       await userEvent.type(passwordRepeatInput, "P4ssword");
+    };
+
+    const generateValidationError = (field, message) => {
+      return rest.post("/api/1.0/users", (req, res, ctx) => {
+        return res(
+          ctx.status(400), ctx.json({
+            validationErrors: {
+              [field]: message
+            },
+        }));
+      })
     }
 
     it("enables the button when the password and password repeat fields have the same value", async () => {
@@ -177,70 +203,89 @@ describe("Sign Up Page", () => {
         expect(form).not.toBeInTheDocument();
       })
     });
-    it("displays validation message for username", async () => {
-      server.use(
-        rest.post("/api/1.0/users", (req, res, ctx) => {
-          return res(
-            ctx.status(400), ctx.json({
-              validationErrors: {
-                username: "Username cannot be null"
-              },
-          }));
-        })
-      )
+
+    it.each`
+      field         | message
+      ${'username'} | ${'Username cannot be null'}
+      ${'email'}    | ${'E-mail cannot be null'}
+      ${'password'} | ${'Password cannot be null'}
+    `("displays $message for field $field", async ({ field, message }) => {
+      server.use(generateValidationError(field, message))
 
       await setup();
 
       await userEvent.click(button);
 
-      const text = await screen.findByText(
-        "Username cannot be null"
-      );
+      const text = await screen.findByText(message);
       expect(text).toBeInTheDocument();
     });
     it("hides spinner after error response received", async () => {
       server.use(
-        rest.post("/api/1.0/users", (req, res, ctx) => {
-          return res(
-            ctx.status(400), ctx.json({
-              validationErrors: {
-                username: "Username cannot be null"
-              },
-          }));
-        })
-      )
+        generateValidationError("username", "Username cannot be null")
+      );
 
       await setup();
 
       await userEvent.click(button);
 
-      await screen.findByText(
-        "Username cannot be null"
-      );
+      await screen.findByText("Username cannot be null");
       const spinner = screen.queryByRole("status");
       expect(spinner).not.toBeInTheDocument();
     });
     it("enables button after error response received", async () => {
       server.use(
-        rest.post("/api/1.0/users", (req, res, ctx) => {
-          return res(
-            ctx.status(400), ctx.json({
-              validationErrors: {
-                username: "Username cannot be null"
-              },
-          }));
-        })
-      )
+        generateValidationError("username", "Username cannot be null")
+      );
 
       await setup();
 
       await userEvent.click(button);
 
-      await screen.findByText(
-        "Username cannot be null"
-      );
       await screen.findByText("Username cannot be null");
       expect(button).toBeEnabled();
+    });
+    it("display mismatch message for password repeat input", async () => {
+      await setup();
+
+      await userEvent.type(passwordInput, "P4ss1");
+      await userEvent.type(passwordRepeatInput, "P4ss2");
+
+      const text = await screen.findByText("Password mismatch");
+      expect(text).toBeInTheDocument();
+    });
+    it.each`
+      field         | message                       | label
+      ${'username'} | ${'Username cannot be null'}  | ${"Username"}
+      ${'email'}    | ${'E-mail cannot be null'}    | ${"E-mail"}
+      ${'password'} | ${'Password cannot be null'}  | ${"Password"}
+    `("clears validation error after username field $field is updated", async ({ field, message, label}) => {
+      server.use(
+        generateValidationError(field, message)
+      );
+
+      await setup();
+
+      await userEvent.click(button);
+
+      const text = await screen.findByText(message);
+      const input = screen.queryByLabelText(label);
+      await userEvent.type(input, "updated");
+      expect(text).not.toBeInTheDocument();
+    });
+  });
+  describe("Internationalization", () => {
+    it("initially displays all text in English", async () => {
+      render(SignUpPage, {
+        global: {
+          plugins: [i18n]
+        }
+      });
+      expect(screen.queryByRole("heading", { name: en.signup })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: en.signup })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: en.username })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: en.email })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: en.password })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: en.passwordRepeat })).toBeInTheDocument();
     });
   });
 });
