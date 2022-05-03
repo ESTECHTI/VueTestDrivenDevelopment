@@ -30,7 +30,7 @@
           :label="$t('passwordRepeat')" 
           type="password"
           v-model="passwordRepeat"
-          :help="hasPasswordMismatch ? 'Password mismatch' : ''"
+          :help="hasPasswordMismatch ? $t('passwordMismatchValidation') : ''"
         />
         <div class="text-center">
           <button class="btn btn-primary" :disabled="isDisabled || apiProgress" @click.prevent="submit">
@@ -41,14 +41,15 @@
       </div>
     </form>
     <div class="alert alert-success mt-3" v-else>
-      Please check your e-mail to activate your account
+      {{$t('accountActivationNotification')}}
     </div>
+    
   </div>
 </template>
- 
 <script>
-import axios from "axios";
-import Input from "../components/Input-c.vue";
+import { signup } from "../api/apiCalls"
+import Input from "../components/Input-c.vue"
+
  
 export default {
   name: 'SignUpPage',
@@ -79,21 +80,21 @@ export default {
     }
   },
   methods: {
-    submit() {
+    async submit() {
       this.apiProgress = true;
-      axios.post("/api/1.0/users", {
+      try {
+        await signup({
         username: this.username,
         email: this.email,
         password: this.password,
-      }).then(() => {
-        this.signUpSuccess = true
       })
-      .catch((error) => {
+      this.signUpSuccess = true;
+      } catch (error) {
         if(error.response.status === 400) {
           this.errors = error.response.data.validationErrors
         }
         this.apiProgress = false;
-      })
+      }
     }
   },
   watch: {

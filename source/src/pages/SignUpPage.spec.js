@@ -7,7 +7,29 @@ import userEvent from "@testing-library/user-event";
 import { setupServer } from "msw/node";
 import { rest } from "msw";
 import i18n from "../locales/i18n";
-import en from "../locales/en.json"
+import en from "../locales/en.json";
+import LanguageSelector from "../components/LanguageSelector.vue";
+
+let requestBody;
+let counter = 0;
+let accpetLanguageHeader;
+  const server = setupServer(
+    rest.post("/api/1.0/users", (req, res, ctx) => {
+      requestBody = req.body;
+      counter += 1;
+      accpetLanguageHeader = re.headers.get("Accept-Language");
+      return res(ctx.status(200));
+    })
+  );
+
+beforeAll(() => server.listen());
+
+beforeEach(() => {
+  counter = 0;
+  server.resetHandlers();
+})
+
+afterAll(() => server.close());
 
 describe("Sign Up Page", () => {
   describe("Layout", () => {
@@ -67,24 +89,6 @@ describe("Sign Up Page", () => {
     });
   });
   describe('Interactions', () => {
-    let requestBody;
-    let counter = 0;
-      const server = setupServer(
-        rest.post("/api/1.0/users", (req, res, ctx) => {
-          requestBody = req.body;
-          counter += 1;
-          return res(ctx.status(200));
-        })
-      );
-
-    beforeAll(() => server.listen());
-
-    beforeEach(() => {
-      counter = 0;
-      server.resetHandlers();
-    })
-
-    afterAll(() => server.close());
 
     let button, passwordInput, passwordRepeatInput, usernameInput;
     const setup = async () => {
@@ -274,18 +278,104 @@ describe("Sign Up Page", () => {
     });
   });
   describe("Internationalization", () => {
-    it("initially displays all text in English", async () => {
-      render(SignUpPage, {
+    let portugueseLanguage, englishLanguage, username, email, password, passwordRepeat, button;
+
+    const setup = () => {
+      const app = {
+        components: {
+          SignUpPage,
+          LanguageSelector
+        },
+        template: `
+          <SignUpPage />
+          <LanguageSelector />
+        `
+      }
+
+      render(app, {
         global: {
           plugins: [i18n]
         }
       });
+      portugueseLanguage = screen.queryByTitle("Portuguese");
+      englishLanguage = screen.queryByTitle("English");
+      password = expect(screen.queryByLabelText(en.password));
+      passwordRepeat = expect(screen.queryByLabelText(en.passwordRepeat));
+      username = screen.queryByLabelText(en.username);
+      email = screen.queryByLabelText(en.email);
+      button = screen.queryByRole("button", { name: en.signup });
+    }
+
+    afterEach(() => {
+      i18n.global.locale = "en"
+    })
+
+    it("initially displays all text in English", async () => {
+      setup();
       expect(screen.queryByRole("heading", { name: en.signup })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: en.signup })).toBeInTheDocument();
       expect(screen.queryByLabelText("heading", { name: en.username })).toBeInTheDocument();
       expect(screen.queryByLabelText("heading", { name: en.email })).toBeInTheDocument();
       expect(screen.queryByLabelText("heading", { name: en.password })).toBeInTheDocument();
       expect(screen.queryByLabelText("heading", { name: en.passwordRepeat })).toBeInTheDocument();
+    });
+
+    it("displays all text in Portuguese after selecting that language", async () => {
+      setup();
+      
+      await userEvent.click(portugueseLanguage);
+
+      expect(screen.queryByRole("heading", { name: br.signup })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: br.signup })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: br.username })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: br.email })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: br.password })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: br.passwordRepeat })).toBeInTheDocument();
+    });
+    
+    it("displays all text in English after page is translated to Portuguese", async () => {
+      setup();
+
+      await userEvent.click(portugueseLanguage);
+
+      await userEvent.click(englishLanguage);
+
+      expect(screen.queryByRole("heading", { name: en.signup })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: en.signup })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: en.username })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: en.email })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: en.password })).toBeInTheDocument();
+      expect(screen.queryByLabelText("heading", { name: en.passwordRepeat })).toBeInTheDocument();
+    });
+    it("displays password mismatch validation in Portuguese", async () => {
+      setup();
+      await userEvent.click(portugueseLanguage);
+      await userEvent.type(password, "P4ssword");
+      await userEvent.type(passwordRepeat, "N3wP4ss");
+      const validation = screen.queryByText(br.passwordMismatchValidation);
+      expect(validation).toBeInTheDocument();
+    });
+    it("sends accept-language having br after that language is selected", async () => {
+      setup();
+      await userEvent.click(portugueseLanguage);
+      await userEvent.type(username, "user1");
+      await userEvent.type(email, "user1@mail.com");
+      await userEvent.type(password, "P4ssword");
+      await userEvent.type(passwordRepeat, "P4ssword");
+      await userEvent.click(button);
+      await screen.findByText(br.accountActivationNotification);
+      expect(accpetLanguageHeader).toBe("br");
+    });
+    it("displays account activation information in Portuguese after selecting that language", async () => {
+      setup();
+      await userEvent.click(portugueseLanguage);
+      await userEvent.type(username, "user1");
+      await userEvent.type(email, "user1@mail.com");
+      await userEvent.type(password, "P4ssword");
+      await userEvent.type(passwordRepeat, "P4ssword");
+      await userEvent.click(button);
+      const accoutnActivation = await screen.findByText(br.accountActivationNotification);
+      expect(accoutnActivation).toBeInTheDocument();
     });
   });
 });
