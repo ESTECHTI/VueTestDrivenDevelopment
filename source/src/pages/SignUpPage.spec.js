@@ -1,7 +1,6 @@
 /* eslint-disable no-undef */
 import SignUpPage from "./SignUpPage.vue";
 import { render, screen, waitFor } from "@testing-library/vue";
-import "@testing-library/jest-dom";
 import userEvent from "@testing-library/user-event";
 //import axios from "axios";
 import { setupServer } from "msw/node";
@@ -305,10 +304,6 @@ describe("Sign Up Page", () => {
       email = screen.queryByLabelText(en.email);
       button = screen.queryByRole("button", { name: en.signup });
     }
-
-    afterEach(() => {
-      i18n.global.locale = "en"
-    })
 
     it("initially displays all text in English", async () => {
       setup();

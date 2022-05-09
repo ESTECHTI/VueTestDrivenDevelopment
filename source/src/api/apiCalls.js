@@ -7,4 +7,8 @@ export const signup = (body) => {
       "Accept-Language": i18n.global.locale,
     }
   })
+};
+
+export const activate = (token) => {
+  return axios.post("/api/1.0/users/token/" + token);
 }

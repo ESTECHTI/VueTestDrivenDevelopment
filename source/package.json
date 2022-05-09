@@ -11,11 +11,13 @@
   "dependencies": {
     "@babel/eslint-parser": "^7.17.0",
     "axios": "^0.26.1",
+    "bootstrap-icons": "^1.8.1",
     "core-js": "^3.8.3",
     "jest-transform-stub": "^2.0.0",
     "vue": "^3.2.13",
     "vue-country-flag": "^2.3.2",
-    "vue-i18n": "9"
+    "vue-i18n": "9",
+    "vue-router": "4"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.12.0",
@@ -58,6 +60,12 @@
       ".*\\.(vue)$": "vue-jest",
       ".*\\.(js)$": "babel-jest",
       ".+\\.(css|styl|less|sass|scss|png|jpg|ttf|woff|woff2)$": "jest-transform-stub"
+    },
+    "setupFilesAfterEnv": [
+      "./test/setupTest.js"
+    ],
+    "moduleNameMapper": {
+      "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/test/fileMock.js"
     }
   }
 }
