@@ -4,17 +4,18 @@
    <div class="alert alert-success mt-3" v-if="success">
      Account is activated
     </div>
-   <span v-if="apiProgress" class="spinner-border" role="status"></span>
+   <Spinner v-if="apiProgress" size="normal"/>
  </div>
 </template>
  
 <script>
+import Spinner from '../components/Spinner.vue';
 import { activate } from '../api/apiCalls';
 
 export default {
   name: '',
   components: {
-    
+    Spinner
   },
   props: {
  
@@ -35,7 +36,7 @@ export default {
   async mounted() {
     this.apiProgress = true;
     try {
-      activate(this.$route.params.token)
+      await activate(this.$route.params.token)
       this.success = true
       this.apiProgress = false
     } catch (error) {

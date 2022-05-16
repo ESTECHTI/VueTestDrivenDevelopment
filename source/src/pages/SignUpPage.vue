@@ -34,7 +34,7 @@
         />
         <div class="text-center">
           <button class="btn btn-primary" :disabled="isDisabled || apiProgress" @click.prevent="submit">
-            <span v-if="apiProgress" class="spinner-border spinner-border-sm" role="status"></span>
+            <Spinner v-if="apiProgress" />
             {{$t('signUp')}}
           </button>
         </div>
@@ -49,11 +49,13 @@
 <script>
 import { signup } from "../api/apiCalls"
 import Input from "../components/Input-c.vue"
+import Spinner from '../components/Spinner.vue';
 
 export default {
   name: 'SignUpPage',
   components: {
-    Input
+    Input,
+    Spinner
   },
   props: {
  
