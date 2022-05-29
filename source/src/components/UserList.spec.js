@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/vue";
 import { setupServer } from "msw/node";
 import { rest } from "msw";
 import userEvent from "@testing-library/user-event";
+import router from "../routes/router"
 
 const server = setupServer(
   rest.get("/api/1.0/users", (req, res, ctx) => {
@@ -46,24 +47,32 @@ const users =  [
   { id: 5, username: "user5", email: "user5@mail.com", image: null },
   { id: 6, username: "user6", email: "user6@mail.com", image: null },
   { id: 7, username: "user7", email: "user7@mail.com", image: null },
-]
+];
+
+const setup =async () => {
+  render(UserList, {
+    global: {
+      plugins: [ router ]
+    }
+  })
+  await router.isReady();
+}
 
 describe("User List", () => {
 
   it("displays three users in list", async () => {
-    render(UserList);
-
+    await setup();
     const users = await screen.findAllByText(/user/);
     expect(users.length).toBe(3);
   });
   it("displays next page link", async () => {
-    render(UserList);
+    await setup();
     await screen.findByText("user1");
     const nextPageLink = screen.queryByText("next >");
-    expect(nextPageLink).toBeInTheDocument();
+    expect(nextPageLink).toBeVisible();
   });
   it("displays next page after clicking next", async () => {
-    render(UserList);
+    await setup();
     await screen.findByText("user1");
     const nextPageLink = screen.queryByText("next >");
     await userEvent.click(nextPageLink);
@@ -71,28 +80,28 @@ describe("User List", () => {
     expect(firstUserOnPage2).toBeInTheDocument();
   });
   it("hides next page link at last page", async () => {
-    render(UserList);
+    await setup();
     await screen.findByText("user1");
     await userEvent.click(screen.queryByText("next >"));
     await screen.findByText("user4");
     await userEvent.click(screen.queryByText("next >"));
     await screen.findByText("user7");
-    expect(screen.queryByText("next >")).not.toBeInTheDocument();
+    expect(screen.queryByText("next >")).not.toBeVisible();
   });
   it("does not display the previous page link in the first page", async () => {
-    render(UserList);
+    await setup();
     await screen.findByText("user1");
-    expect(screen.queryByText("< previous")).not.toBeInTheDocument();
+    expect(screen.queryByText("< previous")).not.toBeVisible();
   });
   it("displays previous page link in the page 2", async () => {
-    render(UserList);
+    await setup();
     await screen.findByText("user1");
     await userEvent.click(screen.queryByText("next >"));
     await screen.findByText("user4");
-    expect(screen.queryByText("< previous")).toBeInTheDocument();
+    expect(screen.queryByText("< previous")).toBeVisible();
   });
   it("displays previous page after clicking previous link", async () => {
-    render(UserList);
+    await setup();
     await screen.findByText("user1");
     await userEvent.click(screen.queryByText("next >"));
     await screen.findByText("user4");
@@ -100,4 +109,22 @@ describe("User List", () => {
     const firstUseronPage1 = await screen.findByText("user1");
     expect(firstUseronPage1).toBeInTheDocument();
   });
+  it("displays spinner during the api call is in progress", async () => {
+    await setup();
+    const spinner = screen.queryByRole("status");
+    expect(spinner).toBeVisible();
+  });
+  it("hides spinner after api call is completed", async () => {
+    await setup();
+    const spinner = screen.queryByRole("status");
+    await screen.findByText("user1");
+    expect(spinner).not.toBeVisible();
+  });
+  it("displays spinner after clicking next", async () => {
+    await setup();
+    await screen.findByText("user1");
+    await userEvent.click(screen.queryByText("next >"));
+    const spinner = screen.queryByRole("status");
+    expect(spinner).toBeVisible();
+  })
 })
