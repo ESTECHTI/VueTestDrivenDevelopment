@@ -4,5 +4,9 @@
   "email": "E-mail",
   "password": "Senha",
   "passwordRepeat": "Repetir Senha",
-  "passwordMismatchValidation": "Sua senha não corresponde"
+  "passwordMismatchValidation": "Sua senha não corresponde",
+  "accountActivationNotification": "Verifique seu e-mail para ativar sua conta",
+  "users": "Usuários",
+  "nextPage": "próximo >",
+  "previousPage": "< voltar"
 }

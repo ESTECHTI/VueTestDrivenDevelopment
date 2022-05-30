@@ -3,18 +3,23 @@ import { render, screen } from "@testing-library/vue";
 import { setupServer } from "msw/node";
 import { rest } from "msw";
 import userEvent from "@testing-library/user-event";
-import router from "../routes/router"
+import router from "../routes/router";
+import en from "../locales/en.json";
+import br from "../locales/br.json";
+import i18n from "../locales/i18n";
+import LanguageSelector from "./LanguageSelector";
 
 const server = setupServer(
   rest.get("/api/1.0/users", (req, res, ctx) => {
-    let page = Number.parseInt(req.url.searchParams.get("page"))
-    let size = Number.parseInt(req.url.searchParams.get("size"))
-    if(Number.isNaN(page)) {
+    let page = Number.parseInt(req.url.searchParams.get("page"));
+    let size = Number.parseInt(req.url.searchParams.get("size"));
+    if (Number.isNaN(page)) {
       page = 0;
     }
-    if(Number.isNaN(size)) {
+    if (Number.isNaN(size)) {
       size = 5;
     }
+
     return res(ctx.status(200), ctx.json(getPage(page, size)));
   })
 );
@@ -23,23 +28,23 @@ beforeAll(() => server.listen());
 
 beforeEach(() => {
   server.resetHandlers();
-})
+});
 
 afterAll(() => server.close());
 
 const getPage = (page, size) => {
   let start = page * size;
   let end = start + size;
-  let totalPages = Math.ceil(users.length / size)
+  let totalPages = Math.ceil(users.length / size);
   return {
     content: users.slice(start, end),
     page,
     size,
-    totalPages
+    totalPages,
   };
-}
+};
 
-const users =  [
+const users = [
   { id: 1, username: "user1", email: "user1@mail.com", image: null },
   { id: 2, username: "user2", email: "user2@mail.com", image: null },
   { id: 3, username: "user3", email: "user3@mail.com", image: null },
@@ -49,17 +54,27 @@ const users =  [
   { id: 7, username: "user7", email: "user7@mail.com", image: null },
 ];
 
-const setup =async () => {
-  render(UserList, {
+const setup = async () => {
+  const app = {
+    components: {
+      UserList,
+      LanguageSelector,
+    },
+    template: `
+        <UserList />
+        <LanguageSelector />
+        `,
+  };
+
+  render(app, {
     global: {
-      plugins: [ router ]
-    }
-  })
+      plugins: [router, i18n],
+    },
+  });
   await router.isReady();
-}
+};
 
 describe("User List", () => {
-
   it("displays three users in list", async () => {
     await setup();
     const users = await screen.findAllByText(/user/);
@@ -88,26 +103,27 @@ describe("User List", () => {
     await screen.findByText("user7");
     expect(screen.queryByText("next >")).not.toBeVisible();
   });
-  it("does not display the previous page link in the first page", async () => {
+  it("does not display the previous page link in first page", async () => {
     await setup();
     await screen.findByText("user1");
     expect(screen.queryByText("< previous")).not.toBeVisible();
   });
-  it("displays previous page link in the page 2", async () => {
+
+  it("displays previous page link in page 2", async () => {
     await setup();
     await screen.findByText("user1");
     await userEvent.click(screen.queryByText("next >"));
     await screen.findByText("user4");
     expect(screen.queryByText("< previous")).toBeVisible();
   });
-  it("displays previous page after clicking previous link", async () => {
+  it("displays previous page after clicking previous page link", async () => {
     await setup();
     await screen.findByText("user1");
     await userEvent.click(screen.queryByText("next >"));
     await screen.findByText("user4");
     await userEvent.click(screen.queryByText("< previous"));
-    const firstUseronPage1 = await screen.findByText("user1");
-    expect(firstUseronPage1).toBeInTheDocument();
+    const firstUserOnPage1 = await screen.findByText("user1");
+    expect(firstUserOnPage1).toBeInTheDocument();
   });
   it("displays spinner during the api call is in progress", async () => {
     await setup();
@@ -126,5 +142,28 @@ describe("User List", () => {
     await userEvent.click(screen.queryByText("next >"));
     const spinner = screen.queryByRole("status");
     expect(spinner).toBeVisible();
-  })
-})
+  });
+});
+
+describe("Internationalization", () => {
+  it("initially displays header and navigation links in english", async () => {
+    await setup();
+    await screen.findByText("user1");
+    await userEvent.click(screen.queryByText("next >"));
+    await screen.findByText("user4");
+    expect(screen.queryByText(en.users)).toBeInTheDocument();
+    expect(screen.queryByText(en.nextPage)).toBeInTheDocument();
+    expect(screen.queryByText(en.previousPage)).toBeInTheDocument();
+  });
+  it("displays header and navigation links in portuguese after selecting that language", async () => {
+    await setup();
+    await screen.findByText("user1");
+    await userEvent.click(screen.queryByText("next >"));
+    await screen.findByText("user4");
+    const portugueseLanguageSelector = screen.queryByTitle("Portuguese");
+    await userEvent.click(portugueseLanguageSelector);
+    expect(screen.queryByText(br.users)).toBeInTheDocument();
+    expect(screen.queryByText(br.nextPage)).toBeInTheDocument();
+    expect(screen.queryByText(br.previousPage)).toBeInTheDocument();
+  });
+});
