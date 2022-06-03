@@ -1,29 +1,75 @@
 <template>
- <div data-testid="login-page">
-   <h1>Login Page</h1>
- </div>
+ <div class="col-lg-6 offset-lg-3 col-md-8 offset-md-2" data-testid="login-page">
+    <form class="card mt-5" data-testid="form-sign-up">
+      <div class="card-header">
+        <h1 class="text-center">Login</h1>
+      </div>
+      <div class="card-body">
+        <Input 
+          id="e-mail"
+          label="E-mail" 
+          v-model="email"
+        />
+        <Input 
+          id="password"
+          label="Password" 
+          v-model="password"
+          type="password"
+        />
+        <div class="alert alert-danger text-center" v-if="failMessage">
+          {{ failMessage }}
+        </div>
+        <div class="text-center">
+          <button class="btn btn-primary" :disabled="isDisabled || apiProgress" @click.prevent="submit">
+            <Spinner v-if="apiProgress"/>
+            Login
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
 </template>
  
 <script>
+import Input from "../components/Input-c.vue";
+import Spinner from "../components/Spinner";
+import { login } from "../api/apiCalls.js";
  
 export default {
   name: '',
   components: {
- 
+    Input,
+    Spinner
   },
   props: {
  
   },
   data:() => {
     return {
- 
+      email: "",
+      password: "",
+      apiProgress: false,
+      failMessage: undefined,
     }
   },
   computed: {
- 
+    isDisabled() {
+      return !(this.email && this.password)
+    }
   },
   methods: {
- 
+    async submit() {
+      this.apiProgress = true
+      try {
+        await login({
+          email: this.email,
+          password: this.password
+        })
+      } catch (error) {
+        this.failMessage = error.response.data.message
+      }
+      this.apiProgress = false
+    }
   }
  
 }
