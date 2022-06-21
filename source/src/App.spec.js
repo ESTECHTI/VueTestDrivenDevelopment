@@ -40,6 +40,9 @@ const server = setupServer(
       })
     );
   }),
+  rest.post("/api/1.0/auth", (req, res, ctx) => {
+    return res(ctx.status(200), ctx.json({ username: "user5" }));
+  })
 );
 
 beforeAll(() => server.listen());
@@ -140,3 +143,17 @@ describe("Routing", () => {
     expect(page).toBeInTheDocument();
   })
 });
+describe("Login", () => {
+  const setupLogin = async () => {
+
+    await setup("/login");
+    screen.queryByLabelText("E-mail");
+    await userEvent.type(screen.queryByLabelText("E-mail"), "user5@mail.com");
+    await userEvent.type(screen.queryByLabelText("Password"), "P4ssword");
+    await userEvent.click(screen.queryByRole("button", { name: "Login" }));
+  }
+  it("redirects to homepage after successful login", async () => {
+    const page = await screen.findByTestId("home-page");
+    expect(page).toBeInTheDocument();
+  })
+})

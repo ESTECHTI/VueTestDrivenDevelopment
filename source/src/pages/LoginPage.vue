@@ -1,18 +1,19 @@
 <template>
  <div class="col-lg-6 offset-lg-3 col-md-8 offset-md-2" data-testid="login-page">
-    <form class="card mt-5" data-testid="form-sign-up">
-      <div class="card-header">
-        <h1 class="text-center">Login</h1>
-      </div>
-      <div class="card-body">
-        <Input 
+    <form class="mt-5" data-testid="form-sign-up">
+      <Card>
+        <template v-slot:header>
+          <h1>{{$t("login")}}</h1>
+        </template>
+        <template v-slot:body>
+          <Input 
           id="e-mail"
-          label="E-mail" 
+          :label="$t('email')" 
           v-model="email"
         />
         <Input 
           id="password"
-          label="Password" 
+          :label="$t('password')" 
           v-model="password"
           type="password"
         />
@@ -20,26 +21,32 @@
           {{ failMessage }}
         </div>
         <div class="text-center">
-          <button class="btn btn-primary" :disabled="isDisabled || apiProgress" @click.prevent="submit">
-            <Spinner v-if="apiProgress"/>
-            Login
-          </button>
+          <ButtonWithProgress 
+            :apiProgress="apiProgress"
+            :disabled="isDisabled"
+            :onClick="submit"
+          >
+          {{$t('login')}}
+          </ButtonWithProgress>
         </div>
-      </div>
+        </template>
+      </Card>
     </form>
   </div>
 </template>
  
 <script>
+import ButtonWithProgress from "../components/ButtonWithProgress.vue";
+import Card from "../components/Card.vue";
 import Input from "../components/Input-c.vue";
-import Spinner from "../components/Spinner";
 import { login } from "../api/apiCalls.js";
  
 export default {
-  name: '',
+  name: 'LoginPage',
   components: {
     Input,
-    Spinner
+    ButtonWithProgress,
+    Card
   },
   props: {
  
@@ -64,12 +71,21 @@ export default {
         await login({
           email: this.email,
           password: this.password
-        })
+        });
+        this.$router.push("/");
       } catch (error) {
         this.failMessage = error.response.data.message
       }
       this.apiProgress = false
     }
+  },
+  watch: {
+    email() {
+      this.failMessage = undefined;
+    },
+    password() {
+      this.failMessage = undefined;
+    },
   }
  
 }

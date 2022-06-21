@@ -3,14 +3,21 @@ import LoginPage from "./LoginPage.vue";
 import userEvent from "@testing-library/user-event";
 import { setupServer } from "msw/node";
 import { rest } from "msw";
+import i18n from "../locales/i18n";
+import en from "../locales/en.json";
+import br from "../locales/br.json";
+import LanguageSelector from "../components/LanguageSelector.vue";
 
-  let requestBody, counter = 0;
+  let requestBody, acceptLanguageHeader, counter = 0;
   const server = setupServer(
     rest.post("/api/1.0/auth", (req, res, ctx) => {
       requestBody = req.body;
       counter += 1;
-      return res(ctx.status(401), ctx.json({
-        message: "Incorret credentials"
+      acceptLanguageHeader = req.headers.get("Accept-Language");
+      return res(
+        ctx.status(401), 
+        ctx.json({
+        message: "Incorrect credentials",
       }));
     })
   );
@@ -26,7 +33,11 @@ afterAll(() => server.close());
 
 let emailInput, passwordInput, button;
 const setup = async () => {
-  render(LoginPage);
+  render(LoginPage, {
+    global: {
+      plugins: [i18n],
+    }
+  });
   emailInput = screen.queryByLabelText("E-mail");
   passwordInput = screen.queryByLabelText("Password");
   button = screen.queryByRole("button", { name: "Login" });
@@ -114,6 +125,73 @@ describe("LoginPage", () => {
       await userEvent.click(button);
       const errorMessage = await screen.findByText("Incorrect credentials");
       expect(errorMessage).toBeInTheDocument();
+    });
+    it("displays authentication fail message when email field is changed", async () => {
+      await setupFilled();
+      await userEvent.click(button);
+      const errorMessage = await screen.findByText("Incorrect credentials");
+      await userEvent.type(emailInput, "new@mail.com");
+      expect(errorMessage).not.toBeInTheDocument();
+    });
+    it("displays authentication fail message when password field is changed", async () => {
+      await setupFilled();
+      await userEvent.click(button);
+      const errorMessage = await screen.findByText("Incorrect credentials");
+      await userEvent.type(passwordInput, "N3wP4ssword");
+      expect(errorMessage).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Internationalization", () => {
+    let portugueseLanguage;
+
+    const setupTranslation = () => {
+      const app = {
+        components: {
+          LoginPage,
+          LanguageSelector
+        },
+        template: `
+          <LoginPage />
+          <LanguageSelector />
+        `
+      }
+
+      render(app, {
+        global: {
+          plugins: [i18n]
+        }
+      });
+      portugueseLanguage = screen.queryByTitle("Portuguese");
+    }
+
+    it("initially displays all text in English", async () => {
+      setupTranslation();
+      expect(screen.queryByRole("heading", { name: en.login })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: en.login })).toBeInTheDocument();
+      expect(screen.queryByLabelText(en.email)).toBeInTheDocument();
+      expect(screen.queryByLabelText(en.password)).toBeInTheDocument();
+    });
+    it("display all text in Portuguese after changing language", async () => {
+      setupTranslation();
+      await userEvent.click(portugueseLanguage);
+      expect(screen.queryByRole("heading", { name: br.login })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: br.login })).toBeInTheDocument();
+      expect(screen.queryByLabelText(br.email)).toBeInTheDocument();
+      expect(screen.queryByLabelText(br.password)).toBeInTheDocument();
+    });
+    it("sends accept-language haeder as br in login request", async () => {
+      setupTranslation();
+      await userEvent.click(portugueseLanguage);
+      const emailInput = screen.queryByLabelText(br.email);
+      const passwordInput = screen.queryByLabelText(br.password);
+      await userEvent.type(emailInput, "user100@mail.com");
+      await userEvent.type(passwordInput, "P4ssword");
+      const button = screen.queryByRole("button", { name: br.login });
+      await userEvent.click(button);
+      const spinner = screen.queryByRole("status");
+      await waitForElementToBeRemoved(spinner);
+      expect(acceptLanguageHeader).toBe("br");
     })
-  })
+  });
 })
